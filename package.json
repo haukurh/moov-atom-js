@@ -1,0 +1,35 @@
+{
+  "name": "moov-atom",
+  "version": "0.0.1",
+  "description": "Library that reads the infamous \"movie atom\" that resides inside a mp4 container",
+  "main": "main.js",
+  "scripts": {
+    "build": "rollup -c",
+    "start": "rollup -c -w"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haukurh/moov-atom-js.git"
+  },
+  "keywords": [
+    "mp4",
+    "moov",
+    "atom",
+    "metadata",
+    "mpeg-4",
+    "media",
+    "video",
+    "media",
+    "info"
+  ],
+  "author": "Haukur Hlöðversson <haukur@haukurh.is>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/haukurh/moov-atom-js/issues"
+  },
+  "homepage": "https://github.com/haukurh/moov-atom-js#readme",
+  "devDependencies": {
+    "rollup": "^2.45.2",
+    "rollup-plugin-terser": "^7.0.2"
+  }
+}
