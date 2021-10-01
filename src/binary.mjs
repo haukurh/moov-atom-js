@@ -13,6 +13,7 @@ const readChars = (uint8Array, position, length) => {
 
 const findMarker = (haystack, needle) => {
     if (!(haystack instanceof Uint8Array)) { throw new TypeError('haystack must an instance of Uint8Array'); }
+
     const marker = strToUint8Array(needle);
     const match = marker.toString();
     for (let i = 0; i < haystack.length; i++) {
@@ -25,6 +26,7 @@ const findMarker = (haystack, needle) => {
 
 const findMarkers = (haystack, needle) => {
     if (!(haystack instanceof Uint8Array)) { throw new TypeError('haystack must an instance of Uint8Array'); }
+
     const marker = strToUint8Array(needle);
     const match = marker.toString();
     const markerPositions = [];
@@ -41,40 +43,35 @@ const strToUint8Array = (str) => {
     return new Uint8Array(chars);
 }
 
-const getFixedPoint32 = (uint8Array, pos) => {
-    if (!Number.isInteger(pos)) {
-        throw new TypeError('Byte offset must be an integer');
-    }
-    const int = uint8Array.slice(pos, pos + 2);
-    const point = uint8Array.slice(pos + 2, pos + 4);
-    const first = (new DataView(int.buffer)).getUint16(0);
-    const last = (new DataView(point.buffer)).getUint16(0);
+const getFixedPoint32 = (uint8Array, byteOffset) => {
+    if (!Number.isInteger(byteOffset)) { throw new TypeError('Byte offset must be an integer'); }
+
+    const first = (new DataView(uint8Array.buffer)).getUint16(byteOffset, false);
+    const last = (new DataView(uint8Array.buffer)).getUint16(byteOffset + 2, false);
     return parseFloat(`${first}.${last}`);
 };
 
-const getFixedPoint16 = (uint8Array, pos) => {
+const getFixedPoint16 = (uint8Array, byteOffset) => {
     if (!(uint8Array instanceof Uint8Array)) { throw new TypeError('uint8Array must an instance of Uint8Array'); }
-    if (!Number.isInteger(pos)) {
-        throw new TypeError('Byte offset must be an integer');
-    }
-    const first = uint8Array[pos];
-    const last = uint8Array[pos + 1];
+    if (!Number.isInteger(byteOffset)) { throw new TypeError('Byte offset must be an integer'); }
 
+    const first = uint8Array[byteOffset];
+    const last = uint8Array[byteOffset + 1];
     return parseFloat(`${first}.${last}`);
 };
 
 const getUInt16 = (uint8Array, byteOffset) => {
-    if (!Number.isInteger(byteOffset)) {
-        throw new TypeError('Byte offset must be an integer');
-    }
-    return (new DataView(uint8Array.buffer)).getUint16(byteOffset, false);
+    if (!Number.isInteger(byteOffset)) { throw new TypeError('Byte offset must be an integer'); }
+
+    return (new DataView(uint8Array.buffer))
+        .getUint16(byteOffset, false);
 };
 
 const getUInt32 = (uint8Array, byteOffset) => {
-    if (!Number.isInteger(byteOffset)) {
-        throw new TypeError('Byte offset must be an integer');
-    }
-    return (new DataView(uint8Array.buffer)).getUint32(byteOffset, false);
+    if (!Number.isInteger(byteOffset)) { throw new TypeError('Byte offset must be an integer'); }
+
+    return (new DataView(uint8Array.buffer))
+        .getUint32(byteOffset, false);
 };
 
 export {
