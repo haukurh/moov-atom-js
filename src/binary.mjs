@@ -49,9 +49,11 @@ const getFixedPoint16 = (uint8Array, pos) => {
     return parseFloat(`${first}.${last}`);
 };
 
-const getUInt16 = (uint8Array, pos) => {
-    const buffer = uint8Array.slice(pos, pos + 2);
-    return (new DataView(buffer.buffer)).getUint16(0);
+const getUInt16 = (uint8Array, byteOffset) => {
+    if (!Number.isInteger(byteOffset)) {
+        throw new TypeError('Byte offset must be an integer');
+    }
+    return (new DataView(uint8Array.buffer)).getUint16(byteOffset, false);
 };
 
 const getUInt32 = (uint8Array, pos) => {
