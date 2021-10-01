@@ -5,7 +5,8 @@
   "main": "main.js",
   "scripts": {
     "build": "rollup -c",
-    "start": "rollup -c -w"
+    "start": "rollup -c -w",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
   },
   "homepage": "https://github.com/haukurh/moov-atom-js#readme",
   "devDependencies": {
+    "jest": "^27.2.4",
     "rollup": "^2.45.2",
     "rollup-plugin-terser": "^7.0.2"
   }
