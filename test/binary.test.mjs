@@ -11,6 +11,26 @@ import {
     getFixedPoint32,
 } from '../src/binary.mjs';
 
+test('readChars should read char codes from an UintA8Array', () => {
+    const testString = 'test me much';
+    const data = new Uint8Array([...testString].map(c => c.charCodeAt(0)));
+
+    expect(readChars(data, 0, testString.length)).toBe(testString);
+    expect(readChars(data, 0, 2)).toBe('te');
+    expect(readChars(data, 2, 2)).toBe('st');
+});
+
+test('readChars unexpected input', () => {
+    expect(() => readChars(new Uint16Array(10), 0, 2))
+        .toThrowError(new TypeError('uint8Array must an instance of Uint8Array'));
+
+    expect(() => readChars(new Uint8Array(10), '0', 2))
+        .toThrowError(new TypeError('position must an integer'));
+
+    expect(() => readChars(new Uint8Array(10), 0, '2'))
+        .toThrowError(new TypeError('length must an integer'));
+});
+
 test('getUInt16 should retrieve correct position',  () => {
     const data = new Uint8Array([...Array(32).keys()]);
     // 00000000 00000001

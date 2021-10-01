@@ -1,6 +1,10 @@
 'use strict';
 
 const readChars = (uint8Array, position, length) => {
+    if (!(uint8Array instanceof Uint8Array)) { throw new TypeError('uint8Array must an instance of Uint8Array'); }
+    if (!Number.isInteger(position)) { throw new TypeError('position must an integer'); }
+    if (!Number.isInteger(length)) { throw new TypeError('length must an integer'); }
+
     return [...uint8Array.slice(position, position + length)]
         .map((char) => String.fromCharCode(char))
         .join('')
