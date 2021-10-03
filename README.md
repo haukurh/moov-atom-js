@@ -18,7 +18,7 @@ or import as a JavaScript module
 
 ```html
 <script type="module">
-    import { readMovieAtom } from 'https://cdn.haukurh.dev/moov/v0.0.1/moov-es-min.mjs';
+    import { readMovieAtom } from 'https://cdn.haukurh.dev/moov/v0.0.1/moov-min.mjs';
     // Do stuff
 </script>
 ```
