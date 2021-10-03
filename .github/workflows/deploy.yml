@@ -3,11 +3,11 @@ on:
     types:
       - created
 
-name: Deploy
+name: Deploy to CDN
 
 jobs:
   deploy:
-    name: Upload to Amazon S3
+    name: Deploy to CDN
     runs-on: ubuntu-latest
 
     steps:
@@ -28,4 +28,4 @@ jobs:
           aws-region: eu-west-1
 
       - name: Copy files to CDN
-        run: aws s3 sync dist "s3://cdn-haukurh-dev/moov/$GITHUB_REF"
+        run: aws s3 sync dist "s3://cdn-haukurh-dev/moov/${GITHUB_REF##*/}"
