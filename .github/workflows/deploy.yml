@@ -28,4 +28,4 @@ jobs:
           aws-region: eu-west-1
 
       - name: Copy files to CDN
-        run: aws s3 sync dist "s3://cdn-haukurh-dev/moov/${GITHUB_REF/refs\/tags\//}"
+        run: aws s3 sync dist "${{ secrets.S3_BUCKET }}${GITHUB_REF/refs\/tags\//}" --cache-control "max-age=365000000, no-transform, immutable"
