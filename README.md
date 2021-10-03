@@ -1,4 +1,4 @@
-# moovAtomJs
+# moovAtomJS
 
 A JavaScript library that reads the infamous "movie atom" that resides inside the mp4 and mov containers.
 
