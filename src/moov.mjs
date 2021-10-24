@@ -108,16 +108,66 @@ const parseGeneralStructureOfASampleDescription = (data, numberOfEntries) => {
     const entries = [];
     for (let i = 0; i < numberOfEntries; i++) {
         const size = getUInt32(data, 0);
+        const dataFormat = readChars(data, 4, 4);
         entries.push({
             size,
-            dataFormat: readChars(data, 4, 4),
+            dataFormat,
             reserved: data.slice(8, 14),
             dataReferenceIndex: getUInt16(data, 14),
-            ...parseVideoSampleDescription(data.slice(16, size), readChars(data, 4, 4)),
+            ...parseVideoSampleDescription(data.slice(16, size), dataFormat),
+            ...parseSoundSampleDescription(data.slice(16, size), dataFormat, size),
         });
         data = data.slice(size);
     }
     return entries;
+};
+
+const parseSoundSampleDescription = (data, type) => {
+    const availableTables = [
+        'NONE', 'raw ', 'twos', 'sowt', 'cvid', 'MAC3', 'MAC6',
+        'ima4', 'fl32', 'fl64', 'in24', 'in32', 'ulaw', 'alaw',
+        'dvca', 'QDMC', 'QDM2', 'Qclp', '.mp3', 'mp4a', 'ac-3',
+    ];
+    if (!availableTables.includes(type)) {
+        return null;
+    }
+
+    const version = getInt16(data, 0);
+    let sampleDescription = {
+        version,
+        revisionLevel: getInt16(data, 2),
+        vendor: getInt32(data, 4),
+    };
+
+    if (version === 0) {
+        sampleDescription = {
+            ...sampleDescription,
+            numberOfChannels: getInt16(data, 8),
+            sampleSize: getInt16(data, 10),
+            compressionId: getInt16(data, 12),
+            packetSize: getInt16(data, 14),
+            sampleRate: getFixedPoint32(data, 16),
+            extensions: parseSoundSampleDescriptionExtensions(data.slice(20)),
+        };
+    } else if (version === 1) {
+        sampleDescription = {
+            ...sampleDescription,
+            numberOfChannels: getInt16(data, 8),
+            sampleSize: getInt16(data, 10),
+            compressionId: getInt16(data, 12),
+            packetSize: getInt16(data, 14),
+            sampleRate: getFixedPoint32(data, 16),
+            samplesPerPacket: getUInt32(data, 20),
+            bytesPerPacket: getUInt32(data, 24),
+            bytesPerFrame: getUInt32(data, 28),
+            bytesPerSample: getUInt32(data, 32),
+            extensions: parseSoundSampleDescriptionExtensions(data.slice(36)),
+        };
+    } else if (version === 2) {
+        // ToDo: implement version 2
+    }
+
+    return sampleDescription;
 };
 
 const parseVideoSampleDescription = (data, type) => {
@@ -180,7 +230,7 @@ const availableVideoSampleDescriptionTypes = {
     clap: (data) => data,
 }
 
-const parseVideoSampleDescriptionExtensions = (data, tables = []) => {
+const parseSampleDescriptionExtensions = (data, extensionTypes, tables = []) => {
     const size = getUInt32(data, 0);
     tables.push({
         size,
@@ -188,12 +238,42 @@ const parseVideoSampleDescriptionExtensions = (data, tables = []) => {
         data: data.slice(8, size),
     });
     if (size && size < data.length) {
-        return parseVideoSampleDescriptionExtensions(data.slice(size), tables);
+        return parseSampleDescriptionExtensions(data.slice(size), extensionTypes, tables);
     } else {
         return tables
-            .filter(entry => Object.keys(availableVideoSampleDescriptionTypes).includes(entry.type))
-            .map(entry => availableVideoSampleDescriptionTypes[entry.type](entry));
+            .filter(entry => Object.keys(extensionTypes).includes(entry.type))
+            .map(entry => extensionTypes[entry.type](entry));
     }
+};
+
+const parseVideoSampleDescriptionExtensions = (data) => {
+    return parseSampleDescriptionExtensions(data, availableVideoSampleDescriptionTypes);
+};
+
+const availableSoundSampleDescriptionTypes = {
+    0: (data) => data,
+    wave: (data) => {
+        return {
+            size: data.size,
+            type: data.type,
+            extensions: parseSoundSampleDescriptionExtensions(data.data),
+        }
+    },
+    frma: (data) => data,
+    esds: (data) => {
+        return {
+            size: data.size,
+            type: data.type,
+            version: getUInt32(data.data, 0),
+            elementaryStreamDescriptor: data.data.slice(4),
+        }
+    },
+    chan: (data) => data,
+    folw: (data) => data,
+}
+
+const parseSoundSampleDescriptionExtensions = (data) => {
+    return parseSampleDescriptionExtensions(data, availableSoundSampleDescriptionTypes);
 };
 
 
