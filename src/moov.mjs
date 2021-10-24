@@ -5,6 +5,8 @@ import {
     findMarker,
     findMarkers,
     strToUint8Array,
+    getInt16,
+    getInt32,
     getUInt16,
     getUInt32,
     getFixedPoint16,
@@ -106,17 +108,174 @@ const parseGeneralStructureOfASampleDescription = (data, numberOfEntries) => {
     const entries = [];
     for (let i = 0; i < numberOfEntries; i++) {
         const size = getUInt32(data, 0);
+        const dataFormat = readChars(data, 4, 4);
         entries.push({
             size,
-            dataFormat: getUInt32(data, 4),
+            dataFormat,
             reserved: data.slice(8, 14),
             dataReferenceIndex: getUInt16(data, 14),
-            additionalData: readChars(data, 18, size),
+            ...parseVideoSampleDescription(data.slice(16, size), dataFormat),
+            ...parseSoundSampleDescription(data.slice(16, size), dataFormat, size),
         });
         data = data.slice(size);
     }
     return entries;
 };
+
+const parseSoundSampleDescription = (data, type) => {
+    const availableTables = [
+        'NONE', 'raw ', 'twos', 'sowt', 'cvid', 'MAC3', 'MAC6',
+        'ima4', 'fl32', 'fl64', 'in24', 'in32', 'ulaw', 'alaw',
+        'dvca', 'QDMC', 'QDM2', 'Qclp', '.mp3', 'mp4a', 'ac-3',
+    ];
+    if (!availableTables.includes(type)) {
+        return null;
+    }
+
+    const version = getInt16(data, 0);
+    let sampleDescription = {
+        version,
+        revisionLevel: getInt16(data, 2),
+        vendor: getInt32(data, 4),
+    };
+
+    if (version === 0) {
+        sampleDescription = {
+            ...sampleDescription,
+            numberOfChannels: getInt16(data, 8),
+            sampleSize: getInt16(data, 10),
+            compressionId: getInt16(data, 12),
+            packetSize: getInt16(data, 14),
+            sampleRate: getFixedPoint32(data, 16),
+            extensions: parseSoundSampleDescriptionExtensions(data.slice(20)),
+        };
+    } else if (version === 1) {
+        sampleDescription = {
+            ...sampleDescription,
+            numberOfChannels: getInt16(data, 8),
+            sampleSize: getInt16(data, 10),
+            compressionId: getInt16(data, 12),
+            packetSize: getInt16(data, 14),
+            sampleRate: getFixedPoint32(data, 16),
+            samplesPerPacket: getUInt32(data, 20),
+            bytesPerPacket: getUInt32(data, 24),
+            bytesPerFrame: getUInt32(data, 28),
+            bytesPerSample: getUInt32(data, 32),
+            extensions: parseSoundSampleDescriptionExtensions(data.slice(36)),
+        };
+    } else if (version === 2) {
+        // ToDo: implement version 2
+    }
+
+    return sampleDescription;
+};
+
+const parseVideoSampleDescription = (data, type) => {
+    const availableTables = [
+        'cvid', 'jpeg', 'smc ', 'rle ', 'rpza', 'kpcd',
+        'png ', 'mjpa', 'mjpb', 'SVQ1', 'SVQ3', 'mp4v',
+        'avc1', 'dvc ', 'dvcp', 'gif ', 'h263', 'tiff',
+        'raw ', '2vuY', 'yuv2', 'v308', 'v408', 'v216',
+        'v410', 'v210'
+    ];
+    if (!availableTables.includes(type)) {
+        return null;
+    }
+    const vendor = getInt32(data, 4);
+    return {
+        version: getInt16(data, 0),
+        revisionLevel: getInt16(data, 2),
+        vendor: vendor !== 0 ? readChars(data, 4, 4) : vendor,
+        temporalQuality: getInt32(data, 8),
+        spatialQuality: getInt32(data, 12),
+        width: getInt16(data, 16),
+        height: getInt16(data, 18),
+        horizontalResolution: getFixedPoint32(data, 20),
+        verticalResolution: getFixedPoint32(data, 24),
+        dataSize: getInt32(data, 28),
+        frameCount: getInt16(data, 32),
+        compressorName: readChars(data, 35, data[34]),
+        depth: getInt16(data, 66),
+        colorTableID: getInt16(data, 68),
+        extensions: parseVideoSampleDescriptionExtensions(data.slice(70)),
+    }
+};
+
+const availableVideoSampleDescriptionTypes = {
+    gama: (data) => data,
+    fiel: (data) => data,
+    mjqt: (data) => data,
+    mjht: (data) => data,
+    esds: (data) => data,
+    // avcC: contains AVCDecoderConfigurationRecord
+    avcC: (data) => data,
+    pasp: (data) => {
+        return {
+            size: data.size,
+            type: data.type,
+            hSpacing: getUInt32(data.data, 0),
+            vSpacing: getUInt32(data.data, 4),
+        }
+    },
+    colr: (data) => {
+        return {
+            size: data.size,
+            type: data.type,
+            colorParameterType: readChars(data.data, 0, 4),
+            primariesIndex: getUInt16(data.data, 4),
+            transferFunctionIndex: getUInt16(data.data, 6),
+            matrixIndex: getUInt16(data.data, 8),
+        }
+    },
+    clap: (data) => data,
+}
+
+const parseSampleDescriptionExtensions = (data, extensionTypes, tables = []) => {
+    const size = getUInt32(data, 0);
+    tables.push({
+        size,
+        type: readChars(data, 4, 4),
+        data: data.slice(8, size),
+    });
+    if (size && size < data.length) {
+        return parseSampleDescriptionExtensions(data.slice(size), extensionTypes, tables);
+    } else {
+        return tables
+            .filter(entry => Object.keys(extensionTypes).includes(entry.type))
+            .map(entry => extensionTypes[entry.type](entry));
+    }
+};
+
+const parseVideoSampleDescriptionExtensions = (data) => {
+    return parseSampleDescriptionExtensions(data, availableVideoSampleDescriptionTypes);
+};
+
+const availableSoundSampleDescriptionTypes = {
+    0: (data) => data,
+    wave: (data) => {
+        return {
+            size: data.size,
+            type: data.type,
+            extensions: parseSoundSampleDescriptionExtensions(data.data),
+        }
+    },
+    frma: (data) => data,
+    esds: (data) => {
+        return {
+            size: data.size,
+            type: data.type,
+            version: getUInt32(data.data, 0),
+            elementaryStreamDescriptor: data.data.slice(4),
+        }
+    },
+    chan: (data) => data,
+    folw: (data) => data,
+}
+
+const parseSoundSampleDescriptionExtensions = (data) => {
+    return parseSampleDescriptionExtensions(data, availableSoundSampleDescriptionTypes);
+};
+
 
 const parseSampleTableAtom = (data) => {
     const stbl = getAtomByType(data, 'stbl');
