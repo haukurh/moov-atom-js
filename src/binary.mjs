@@ -60,11 +60,25 @@ const getFixedPoint16 = (uint8Array, byteOffset) => {
     return parseFloat(`${first}.${last}`);
 };
 
+const getInt16 = (uint8Array, byteOffset) => {
+    if (!Number.isInteger(byteOffset)) { throw new TypeError('Byte offset must be an integer'); }
+
+    return (new DataView(uint8Array.buffer))
+        .getInt16(byteOffset, false);
+};
+
 const getUInt16 = (uint8Array, byteOffset) => {
     if (!Number.isInteger(byteOffset)) { throw new TypeError('Byte offset must be an integer'); }
 
     return (new DataView(uint8Array.buffer))
         .getUint16(byteOffset, false);
+};
+
+const getInt32 = (uint8Array, byteOffset) => {
+    if (!Number.isInteger(byteOffset)) { throw new TypeError('Byte offset must be an integer'); }
+
+    return (new DataView(uint8Array.buffer))
+        .getInt32(byteOffset, false);
 };
 
 const getUInt32 = (uint8Array, byteOffset) => {
@@ -79,6 +93,8 @@ export {
     findMarker,
     findMarkers,
     strToUint8Array,
+    getInt16,
+    getInt32,
     getUInt16,
     getUInt32,
     getFixedPoint16,

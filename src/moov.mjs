@@ -5,6 +5,8 @@ import {
     findMarker,
     findMarkers,
     strToUint8Array,
+    getInt16,
+    getInt32,
     getUInt16,
     getUInt32,
     getFixedPoint16,
@@ -108,15 +110,92 @@ const parseGeneralStructureOfASampleDescription = (data, numberOfEntries) => {
         const size = getUInt32(data, 0);
         entries.push({
             size,
-            dataFormat: getUInt32(data, 4),
+            dataFormat: readChars(data, 4, 4),
             reserved: data.slice(8, 14),
             dataReferenceIndex: getUInt16(data, 14),
-            additionalData: readChars(data, 18, size),
+            ...parseVideoSampleDescription(data.slice(16, size), readChars(data, 4, 4)),
         });
         data = data.slice(size);
     }
     return entries;
 };
+
+const parseVideoSampleDescription = (data, type) => {
+    const availableTables = [
+        'cvid', 'jpeg', 'smc ', 'rle ', 'rpza', 'kpcd',
+        'png ', 'mjpa', 'mjpb', 'SVQ1', 'SVQ3', 'mp4v',
+        'avc1', 'dvc ', 'dvcp', 'gif ', 'h263', 'tiff',
+        'raw ', '2vuY', 'yuv2', 'v308', 'v408', 'v216',
+        'v410', 'v210'
+    ];
+    if (!availableTables.includes(type)) {
+        return null;
+    }
+    const vendor = getInt32(data, 4);
+    return {
+        version: getInt16(data, 0),
+        revisionLevel: getInt16(data, 2),
+        vendor: vendor !== 0 ? readChars(data, 4, 4) : vendor,
+        temporalQuality: getInt32(data, 8),
+        spatialQuality: getInt32(data, 12),
+        width: getInt16(data, 16),
+        height: getInt16(data, 18),
+        horizontalResolution: getFixedPoint32(data, 20),
+        verticalResolution: getFixedPoint32(data, 24),
+        dataSize: getInt32(data, 28),
+        frameCount: getInt16(data, 32),
+        compressorName: readChars(data, 35, data[34]),
+        depth: getInt16(data, 66),
+        colorTableID: getInt16(data, 68),
+        extensions: parseVideoSampleDescriptionExtensions(data.slice(70)),
+    }
+};
+
+const availableVideoSampleDescriptionTypes = {
+    gama: (data) => data,
+    fiel: (data) => data,
+    mjqt: (data) => data,
+    mjht: (data) => data,
+    esds: (data) => data,
+    // avcC: contains AVCDecoderConfigurationRecord
+    avcC: (data) => data,
+    pasp: (data) => {
+        return {
+            size: data.size,
+            type: data.type,
+            hSpacing: getUInt32(data.data, 0),
+            vSpacing: getUInt32(data.data, 4),
+        }
+    },
+    colr: (data) => {
+        return {
+            size: data.size,
+            type: data.type,
+            colorParameterType: readChars(data.data, 0, 4),
+            primariesIndex: getUInt16(data.data, 4),
+            transferFunctionIndex: getUInt16(data.data, 6),
+            matrixIndex: getUInt16(data.data, 8),
+        }
+    },
+    clap: (data) => data,
+}
+
+const parseVideoSampleDescriptionExtensions = (data, tables = []) => {
+    const size = getUInt32(data, 0);
+    tables.push({
+        size,
+        type: readChars(data, 4, 4),
+        data: data.slice(8, size),
+    });
+    if (size && size < data.length) {
+        return parseVideoSampleDescriptionExtensions(data.slice(size), tables);
+    } else {
+        return tables
+            .filter(entry => Object.keys(availableVideoSampleDescriptionTypes).includes(entry.type))
+            .map(entry => availableVideoSampleDescriptionTypes[entry.type](entry));
+    }
+};
+
 
 const parseSampleTableAtom = (data) => {
     const stbl = getAtomByType(data, 'stbl');
