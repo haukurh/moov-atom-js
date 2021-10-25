@@ -279,10 +279,23 @@ const parseSoundSampleDescriptionExtensions = (data) => {
 
 const parseSampleTableAtom = (data) => {
     const stbl = getAtomByType(data, 'stbl');
+    const stsd = parseSampleDescriptionAtom(stbl.slice(8));
     return {
         size: getUInt32(stbl, 0),
         type: readChars(stbl, 4, 4),
-        stsd: parseSampleDescriptionAtom(stbl.slice(8)),
+        stsd,
+        stts: getAtomByType(stbl, 'stts'),
+        ctts: getAtomByType(stbl, 'ctts'),
+        cslg: getAtomByType(stbl, 'cslg'),
+        stss: getAtomByType(stbl, 'stss'),
+        stps: getAtomByType(stbl, 'stps'),
+        stsc: getAtomByType(stbl, 'stsc'),
+        stsz: getAtomByType(stbl, 'stsz'),
+        stco: getAtomByType(stbl, 'stco'),
+        stsh: getAtomByType(stbl, 'stsh'),
+        sgpd: getAtomByType(stbl, 'sgpd'),
+        sbgp: getAtomByType(stbl, 'sbgp'),
+        sdtp: getAtomByType(stbl, 'sdtp'),
     };
 };
 
