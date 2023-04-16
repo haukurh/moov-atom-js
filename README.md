@@ -11,7 +11,7 @@ The main aspect of this project is to implement in browser. You can include in y
 Grab the library from the CDN
 
 ```html
-<script src="https://cdn.haukurh.dev/moov-atom-js/v0.0.2/moov-min.js" integrity="sha384-vKZ0J8C4NGSCwbmWCwiiG6I8Nqoseh0Hr2216MCy8GkVNbOrM0/GcqmpNS54YmAT" crossorigin="anonymous"></script>
+<script src="https://cdn.haukurh.dev/moov-atom-js/v0.0.2/moov-min.js" integrity="sha384-llxYaIQ9yMZp5HPc+WnAFhoRkn96KZM+b93aRUOBHVoaaE72GFDMCGXbQJaSx0dQ" crossorigin="anonymous"></script>
 ```
 
 or import as a JavaScript module
